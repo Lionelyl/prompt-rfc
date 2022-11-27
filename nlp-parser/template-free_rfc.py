@@ -407,19 +407,19 @@ def main():
         exit(-1)
 
 
-    # if args.cuda_device >= 0:
-    #     is_cuda_avail = torch.cuda.is_available()
-    #     if not is_cuda_avail:
-    #         print("ERROR: There is no CUDA device available, you need a GPU to train this model.")
-    #         exit(-1)
-    #     elif args.cuda_device >= torch.cuda.device_count():
-    #         print("ERROR: Please specify a valid cuda device, you have {} devices".format(torch.cuda.device_count()))
-    #         exit(-1)
-    #     torch.cuda.set_device('cuda:{}'.format(args.cuda_device))
-    #     torch.backends.cudnn.benchmark=True
-    # else:
-    #     print("ERROR: You need a GPU to train this model. Please specify a valid cuda device, you have {} devices".format(torch.cuda.device_count()))
-    #     exit(-1)
+    if args.cuda_device >= 0:
+        is_cuda_avail = torch.cuda.is_available()
+        if not is_cuda_avail:
+            print("ERROR: There is no CUDA device available, you need a GPU to train this model.")
+            exit(-1)
+        elif args.cuda_device >= torch.cuda.device_count():
+            print("ERROR: Please specify a valid cuda device, you have {} devices".format(torch.cuda.device_count()))
+            exit(-1)
+        torch.cuda.set_device('cuda:{}'.format(args.cuda_device))
+        torch.backends.cudnn.benchmark=True
+    else:
+        print("ERROR: You need a GPU to train this model. Please specify a valid cuda device, you have {} devices".format(torch.cuda.device_count()))
+        exit(-1)
 
     device = 'cuda:{}'.format(args.cuda_device) if torch.cuda.is_available() else 'cpu'
 
@@ -554,30 +554,30 @@ def main():
 
             print(f'lr: {optimizer.param_groups[0]["lr"]}')
 
-            # for x, x_feats, x_len, x_chunk_len, y in train_dataloader:
-            #     x = x.to(device)
-            #     x_feats = x_feats.to(device)
-            #     x_len = x_len.to(device)
-            #     x_chunk_len = x_chunk_len.to(device)
-            #     y = y.to(device)
-            #     # print(f'chunk_size : {x_len}')
-            #
-            #     model.zero_grad()
-            #
-            #     if args.crf:
-            #         loss, _ = model.forward_crf(x, x_feats, x_len, x_chunk_len, y, device, index2id)
-            #     else:
-            #         loss, _ = model.forward_tf(x, x_feats, x_len, x_chunk_len, y, device)
-            #     total_loss += loss.item()
-            #
-            #     loss.backward()
-            #     torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            #     optimizer.step()
-            #
-            #     pbar.update(1)
-            #
-            # if args.warmup:
-            #     scheduler.step()
+            for x, x_feats, x_len, x_chunk_len, y in train_dataloader:
+                x = x.to(device)
+                x_feats = x_feats.to(device)
+                x_len = x_len.to(device)
+                x_chunk_len = x_chunk_len.to(device)
+                y = y.to(device)
+                # print(f'chunk_size : {x_len}')
+
+                model.zero_grad()
+
+                if args.crf:
+                    loss, _ = model.forward_crf(x, x_feats, x_len, x_chunk_len, y, device, index2id)
+                else:
+                    loss, _ = model.forward_tf(x, x_feats, x_len, x_chunk_len, y, device)
+                total_loss += loss.item()
+
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                optimizer.step()
+
+                pbar.update(1)
+
+            if args.warmup:
+                scheduler.step()
 
             if args.crf:
                 dev_loss, dev_labels, dev_preds = evaluate_bert(model, dev_dataloader, device, index2id)
