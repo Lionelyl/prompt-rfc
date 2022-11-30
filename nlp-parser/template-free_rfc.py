@@ -36,7 +36,7 @@ def log_sum_exp(vec):
 class BERT_BERT_MLP(nn.Module):
 
     def __init__(self, bert_model_name, chunk_hidden_dim, max_chunk_len, max_seq_len, feat_sz,
-                 batch_size, output_dim, use_features=False, bert_freeze=0, device='cpu'):
+                 batch_size, output_dim, use_features=False, bert_freeze=0, device='cpu', is_crf=False):
         super(BERT_BERT_MLP, self).__init__()
         self.chunk_hidden_dim = chunk_hidden_dim
         self.max_chunk_len = max_chunk_len
@@ -60,13 +60,13 @@ class BERT_BERT_MLP(nn.Module):
 
         # Matrix of transition parameters.  Entry i,j is the score of
         # transitioning *to* i *from* j.
-        self.transitions = nn.Parameter(
-            torch.randn(output_dim + 2, output_dim + 2))
-
-        # These two statements enforce the constraint that we never transfer
-        # to the start tag and we never transfer from the stop tag
-        self.transitions.data[START_TAG, :] = -10000
-        self.transitions.data[:, STOP_TAG] = -10000
+        if is_crf:
+            self.transitions = nn.Parameter(
+                torch.randn(output_dim + 2, output_dim + 2))
+            # These two statements enforce the constraint that we never transfer
+            # to the start tag and we never transfer from the stop tag
+            self.transitions.data[START_TAG, :] = -10000
+            self.transitions.data[:, STOP_TAG] = -10000
 
         if bert_freeze > 0:
             # We freeze here the embeddings of the model
@@ -468,7 +468,7 @@ def main():
     model = BERT_BERT_MLP(args.bert_model,
                           args.chunk_hidden_dim,
                           max_chunks, max_tokens, feat_sz, args.batch_size, output_dim=len(tag2id),
-                          use_features=args.features, bert_freeze=10, device=device)
+                          use_features=args.features, bert_freeze=10, device=device, is_crf=args.crf)
     model.to(device)
 
     # {'B-TRIGGER': 0, 'B-ACTION': 1, 'O': 2, 'B-TRANSITION': 3, 'B-TIMER': 4, 'B-ERROR': 5, 'B-VARIABLE': 6}
