@@ -1167,7 +1167,8 @@ def write_results(X_test_data, y_test_trans, y_pred_trans, level_h_trans, level_
                 #print("FROM | ", transition_str, tags)
 
             #if current_tag[2:].lower() in ['trigger', 'transition'] and overlap(word, def_states):
-            if current_tag[2:].lower() in ['trigger', 'transition'] and word in def_states and (not explicit_type):
+            #if current_tag[2:].lower() in ['trigger', 'transition'] and word in def_states and (not explicit_type):
+            if word in def_states and (not explicit_type):
                 tagged_word = ""
 
                 # If source/target explicit, open tag

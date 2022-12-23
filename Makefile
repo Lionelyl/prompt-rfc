@@ -33,8 +33,135 @@ dccpbert2promela:
 	python3 nlp2promela/nlp2promela.py rfcs-predicted/bert_pretrained_rfcs_crf_phrases_feats/DCCP.xml
 	make cleanTemporary
 
+2p:
+	python3 nlp2promela/nlp2promela.py $(F)
+	make cleanTemporary
+
 # ------ nlp-parser -------
-# ------ template-free ------
+# template-free
+tftrain:
+	python3 -u nlp-parser/template-free_rfc.py                      			\
+			--features                                                      \
+			--savedir .                                                     \
+			--do_eval                                                       \
+			--heuristics                                                    \
+			--protocol $(P)                                                  \
+			--outdir output 												\
+			--bert_model networking_bert_rfcs_only                          \
+			--learning_rate 1e-5                                            \
+			--batch_size 1 	\
+			--patience 10 \
+			--cuda_device $(C) \
+			--do_train \
+			--warmup \
+			--domain_label_map_path data/label_map_domain_new.json
+#			--domain_label_map_path data/label_map_domain.json
+
+# template free only 3 tags
+tftrainonly3:
+	python3 -u nlp-parser/template-free_rfc_only3.py               			\
+			--features                                                      \
+			--savedir .                                                     \
+			--do_eval                                                       \
+			--heuristics                                                    \
+			--protocol $(P)                                                  \
+			--outdir output 												\
+			--bert_model networking_bert_rfcs_only                          \
+			--learning_rate 1e-5                                            \
+			--batch_size 1 	\
+			--patience 10 \
+			--cuda_device $(C) \
+			--do_train \
+			--warmup \
+			--domain_label_map_path data/label_map_domain.json
+
+tftrainonly3hypersamewithrfcnlp:
+	python3 -u nlp-parser/template-free_rfc_only3.py                      			\
+			--features                                                      \
+			--savedir .                                                     \
+			--do_eval                                                       \
+			--heuristics                                                    \
+			--protocol $(P)                                                  \
+			--outdir output 												\
+			--bert_model networking_bert_rfcs_only                          \
+			--learning_rate 2e-5                                            \
+			--batch_size 1 	\
+			--patience 5 \
+			--cuda_device $(C) \
+			--do_train \
+			--domain_label_map_path data/label_map_domain.json
+
+# write results
+tfwrite:
+	python3 -u $(F)               			\
+			--features                                                      \
+			--savedir .                                                     \
+			--do_eval                                                       \
+			--protocol $(P)                                                  \
+			--outdir output 												\
+			--bert_model networking_bert_rfcs_only                          \
+			--learning_rate 1e-5                                            \
+			--batch_size 1 	\
+			--patience 10 \
+			--cuda_device $(C) \
+			--write_results \
+			--warmup \
+			--domain_label_map_path data/label_map_domain.json
+
+# write results with Post heuristics
+tfwriteR:
+	python3 -u $(F)               			\
+			--features                                                      \
+			--savedir .                                                     \
+			--do_eval                                                       \
+			--heuristics                                                    \
+			--protocol $(P)                                                  \
+			--outdir output 												\
+			--bert_model networking_bert_rfcs_only                          \
+			--learning_rate 1e-5                                            \
+			--batch_size 1 	\
+			--patience 10 \
+			--cuda_device $(C) \
+			--write_results  \
+			--warmup \
+			--domain_label_map_path data/label_map_domain.json
+
+# same hyper parameter with rfcnlp | write results
+tfwritesamerfc:
+	python3 -u $(F)               			\
+			--features                                                      \
+			--savedir .                                                     \
+			--do_eval                                                       \
+			--protocol $(P)                                                  \
+			--outdir output 												\
+			--bert_model networking_bert_rfcs_only                          \
+			--learning_rate 2e-5                                            \
+			--batch_size 1 	\
+			--patience 5 \
+			--cuda_device $(C) \
+			--write_results \
+			--domain_label_map_path data/label_map_domain.json
+
+#  same hyper parameter with rfcnlp | write results with Post heuristics
+tfwriteRsamerfc:
+	python3 -u $(F)               			\
+			--features                                                      \
+			--savedir .                                                     \
+			--do_eval                                                       \
+			--heuristics                                                    \
+			--protocol $(P)                                                  \
+			--outdir output 												\
+			--bert_model networking_bert_rfcs_only                          \
+			--learning_rate 2e-5                                            \
+			--batch_size 1 	\
+			--patience 5 \
+			--cuda_device $(C) \
+			--write_results  \
+			--domain_label_map_path data/label_map_domain.json
+
+
+
+# CRF
 tcptfcrf:
 	python3 models/entlm_crf_rfc.py                        			\
 			--features                                                      \
@@ -46,10 +173,10 @@ tcptfcrf:
 			--learning_rate 1e-5                                            \
 			--batch_size 1 	\
 			--patience 10 \
-			--cuda_device 2 \
+			--cuda_device 1 \
 			--do_train                                                      \
-			--redundancy \
 			--handmaded_label_map_path data/label_map_handmade.json
+#			--redundancy \
 #			--warmup\
 #			--label_map_path data/label_map_data_ratio0.6_multitoken_top6.json
 #			--label_map_path data/label_map_handmaded_multitoken_top6.json  \
@@ -140,8 +267,7 @@ sctpentlmcrf:
 			--handmaded_label_map_path data/label_map_handmaded_02.json
 #			--label_map_path data/label_map_handmaded_multitoken_top6.jso
 
-#=== not crf ====
-
+# === not crf ====
 tcptftrain:
 	python3 nlp-parser/template-free_rfc.py                      			\
 			--features                                                      \
@@ -153,8 +279,8 @@ tcptftrain:
 			--bert_model networking_bert_rfcs_only                          \
 			--learning_rate 1e-5                                            \
 			--batch_size 1 	\
-			--patience 10 \
-			--cuda_device 3 \
+			--patience 0 \
+			--cuda_device 0 \
 			--do_train \
 			--warmup \
 			--domain_label_map_path data/label_map_domain.json
@@ -170,11 +296,11 @@ dccptftrain:
 			--learning_rate 1e-5                                            \
 			--batch_size 1 	\
 			--patience 10 \
-			--cuda_device 3 \
+			--cuda_device 1 \
 			--warmup \
-			--domain_label_map_path data/label_map_domain.json \
-			--write_results
-#			--do_train \
+			--domain_label_map_path data/label_map_domain.json\
+			--do_train
+#			--write_results
 #			--redundancy
 #			--label_map_path data/label_map_data_ratio0.6_multitoken_top6.json
 

@@ -242,16 +242,9 @@ def findInnerState(t, id2state):
 def findOuterStates(t, ctl, id2state):
     if ET.tostring(t) == ET.tostring(ctl):
         return []
-    options, cur_option, standby_option = [], [], []
+    options, cur_option = [], []
     for child in ctl:
-        if child == t :
-            for subchild in child:
-                if subchild.tag =='ref_state' or subchild.tag == 'def_state':
-                    cid = subchild.get('id')
-                    state = id2state[cid]
-                    standby_option.append(state)
-                    break
-            break
+        if child == t : break
         if child.tag == 'control' : continue
         if child.tag == 'trigger':
             for subchild in child:
@@ -273,7 +266,6 @@ def findOuterStates(t, ctl, id2state):
             cur_option = []
     if len(cur_option) > 0:
         options.append(cur_option)
-    if len(options) == 0 : options.append(standby_option)
     options = [o for o in options if o != None]
     if len(options) == 0:
         return []

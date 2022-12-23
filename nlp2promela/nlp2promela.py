@@ -23,7 +23,7 @@ from testPromelaModel import *
 #     name as the input file, modulo extension.  This image represents
 #     graphically the FSM of the protocol, or at least, my best guess.
 def main(writepromela=True, writepng=True):
-    # rfc = sys.argv[1]
+    rfc = sys.argv[1]
     # rfc = 'entlm_result/TCP.xml'
     # rfc = 'entlm_result/DCCP.xml'
     # rfc = 'rfcs-predicted-paper/bert_pretrained_rfcs_crf_phrases_feats/TCP.xml'
@@ -31,7 +31,7 @@ def main(writepromela=True, writepng=True):
     # rfc = 'rfcs-annotated-tidied/TCP.xml'
     # rfc = 'rfcs-annotated-tidied/DCCP.xml'
     # rfc = 'output/TCP.xml'
-    rfc = 'output/TCP-R.xml'
+    # rfc = 'output/TCP-R.xml'
     # rfc = 'output/DCCP.xml'
     # rfc = 'output/DCCP-R.xml'
     cleanedFile, removedLines = cleanFile(rfc)
