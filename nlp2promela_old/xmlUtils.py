@@ -239,10 +239,10 @@ def findInnerState(t, id2state):
         return to_state
     return to_state
 
-def findOuterStates(t, ctl, id2state):
+def findOuterStates(t, ctl, id2state,standby_option,iftcp = False):
     if ET.tostring(t) == ET.tostring(ctl):
         return []
-    options, cur_option, standby_option = [], [], []
+    options, cur_option =  [], []
     for child in ctl:
         if child == t :
             for subchild in child:
@@ -263,17 +263,17 @@ def findOuterStates(t, ctl, id2state):
             cid = child.get('id')
             state = id2state[cid]
             cur_option.append(state)
-        elif len(cur_option) > 0:
-            options.append(cur_option)
-            cur_option = []
-        elif child.tag != 'transition':
-            sub_options = findOuterStates(t, child, id2state)
+        if child.tag != 'transition':
+            sub_options = findOuterStates(t, child, id2state,standby_option,iftcp)
             if sub_options != None and len(sub_options) > 0:
                 options.append(sub_options)
+            #cur_option = []
+        if len(cur_option) > 0:
+            options.append(cur_option)
             cur_option = []
     if len(cur_option) > 0:
         options.append(cur_option)
-    if len(options) == 0 : options.append(standby_option)
+    if len(options) == 0 and not iftcp : options.append(standby_option)
     options = [o for o in options if o != None]
     if len(options) == 0:
         return []
@@ -312,14 +312,16 @@ def splitArguments(argument):
     ret.append(current)
     return ret
 
-def parseTransition(t, xml, id2reason, id2state, trygoup=True, numup=6):
+def parseTransition(protocol,t, xml, id2reason, id2state, trygoup=True, numup=6):
     # find explicit states - in some cases, both are explicit
     to_state = findExplicitToState(t, id2state)
     from_state = findExplicitFromState(t, id2state)
     intermediate_states = findExplicitIntermediateStates(t, id2state)
     intermediate_states = [s.upper() for s in intermediate_states]
-
+    iftcp = False
+    if protocol == 'tcp': iftcp = True
     outer_states = []
+    standby_option = []
     # find upper bound
     control = nearestControl(t, xml)
     # find argument
@@ -332,14 +334,14 @@ def parseTransition(t, xml, id2reason, id2state, trygoup=True, numup=6):
         # find to_state
         to_state = findInnerState(t, id2state)
         # find from_states
-        outer_states = findOuterStates(t, control, id2state)
+        outer_states = findOuterStates(t, control, id2state,standby_option,iftcp)
     # This case is similar to the above but we have an explicit -target- or 
     # -source- annotation inside <transition>
     # In DCCP, there are a few annotations where the single reference inside is 
     # a source
     elif to_state is None or from_state is None:
         # find outside states
-        outer_states = findOuterStates(t, control, id2state)
+        outer_states = findOuterStates(t, control, id2state,standby_option,iftcp)
     #print("to_state", to_state, "from_state", from_state)
 
     # Try going up just one layer.
@@ -365,9 +367,12 @@ def parseTransition(t, xml, id2reason, id2state, trygoup=True, numup=6):
                 
                 outer_states = findOuterStates(control,        \
                                                parent_control, \
-                                               id2state)
+                                               id2state,standby_option,iftcp)
 
         else:
+            if standby_option != []:
+                print("standby!!!!!",standby_option)
+                outer_states += standby_option
             break
 
         i += 1

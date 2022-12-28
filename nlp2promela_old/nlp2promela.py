@@ -28,15 +28,18 @@ def main(writepromela=True, writepng=True):
     # rfc = 'rfcs-predicted-paper/bert_pretrained_rfcs_crf_phrases_feats/DCCP.xml'
     # rfc = 'rfcs-predicted-paper/bert_pretrained_rfcs_crf_phrases_feats/TCP.xml'
     # rfc = 'nerual+R+data_new/DCCP.xml'
-    # rfc = 'output2/TCP-R.xml'
+    # rfc = 'output/TCP.xml'
     # rfc = 'rfcs-annotated-tidied/TCP.xml'
     # rfc = 'output2/DCCP.xml'
-    rfc = 'output2/DCCP.xml'
+    # rfc = 'output_test/DCCP_only3.xml'
     # rfc = 'rfcs-annotated-tidied/DCCP.xml'
     # rfc = 'output/TCP.xml'
     # rfc = 'output/TCP-R.xml'
     # rfc = 'output/DCCP.xml'
     # rfc = 'output/DCCP-R.xml'
+    rfc = sys.argv[1]
+    protocol = sys.argv[2]
+    # protocol = 'dccp'
     cleanedFile, removedLines = cleanFile(rfc)
     xml = ET.parse(cleanedFile)
     
@@ -51,7 +54,7 @@ def main(writepromela=True, writepng=True):
     id2state  = { a.get("id") : a.text for a in xml.iter('def_state') }
     id2reason = { a.get("id") : promela_convenience(a.text) for a in xml.iter('def_event') }
 
-    parsed = lambda t : parseTransition(t, xml, id2reason, id2state)
+    parsed = lambda t : parseTransition(protocol,t, xml, id2reason, id2state)
 
     oktran = lambda A, b, c : len(A) > 0 and not None in [ b, c ]
 
