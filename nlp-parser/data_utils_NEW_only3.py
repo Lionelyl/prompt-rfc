@@ -1040,7 +1040,7 @@ def write_results(X_test_data, y_test_trans, y_pred_trans, level_h_trans, level_
     pbar = tqdm(total=n_controls)
 
     for x, y_g, y_p, h, d in zip(X_test_data, y_test_trans, y_pred_trans, level_h_trans, level_d_trans):
-
+        #print("========control start===========")
         cur_str =  '\n<control relevant="true">'
         ret_str += '\n<control relevant="true">'
 
@@ -1083,8 +1083,12 @@ def write_results(X_test_data, y_test_trans, y_pred_trans, level_h_trans, level_
                 cur_str += offset_str + "</{}>".format(prev_tag[2:].lower())
                 closed = True
 
-            if current_tag is None or (not same_span(current_tag, prev_tag) and current_tag != 'O'): # 如果当前tag和之前的tag不同，且当前标签不是"O"，则根据h和d创建或闭合control标签，并创建tag的开标签
-
+            # testset = ['trigger','action','transition']
+            #print(word+"-------------"+current_tag+f"---------{d[i]}---------{h[i]}")
+            if current_tag is None or (not same_span(current_tag, prev_tag) and current_tag != 'O'):
+                #oflag = False
+                # 如果当前tag和之前的tag不同，且当前标签不是"O"，则根据h和d创建或闭合control标签，并创建tag的开标签
+            # if current_tag is None or (not same_span(current_tag, prev_tag) and current_tag in testset):
                 '''
                 # Guess recursive controls
                 open_recursive_control, open_continued_control, offset_str, new_ret_str, offset =\
@@ -1092,9 +1096,24 @@ def write_results(X_test_data, y_test_trans, y_pred_trans, level_h_trans, level_
                                              open_recursive_control, open_continued_control)
                 ret_str += new_ret_str
                 '''
+                #if current_tag == 'O' : oflag = True
                 # Use offsets to identify recursive controls
+                # if prev_h > 0 and h[i] > prev_h:
+                #     offset_str = "".join(['\t'] * (offset-1))
+                #     ret_str += "\n\n" + offset_str + '<control relevant="true">'
+                #     cur_str += "\n\n" + offset_str + '<control relevant="true">'
+                #     if offset not in num_open_control:
+                #         num_open_control[offset] = 0
+                #     num_open_control[offset] += 1
+                #     #print("adding", offset, num_open_control)
+                # tag_type = None; tags = []
+
+                # if prev_h > 0 and prev_d > 0 and \
+                #         (h[i] > prev_h and prev_d == d[i]):
+                # if prev_h > 0 and prev_d > 0 and \
+                #         (h[i] > prev_h and prev_d == d[i]) and offset in num_open_control:
                 if prev_h > 0 and prev_d > 0 and \
-                        (h[i] > prev_h and prev_d == d[i]) and offset in num_open_control:
+                        (h[i] > prev_h and prev_d == d[i]) :
                     offset_str = "".join(['\t'] * (offset-1))
                     ret_str += "\n" + offset_str + '</control>'
                     cur_str += "\n" + offset_str + '</control>'
@@ -1116,6 +1135,7 @@ def write_results(X_test_data, y_test_trans, y_pred_trans, level_h_trans, level_
                         cur_str += "\n" + offset_str + "</control>"
                         num_open_control[open_control] -= 1
 
+                #原来的位置在这里：
                 if prev_h > 0 and h[i] > prev_h:
                     offset_str = "".join(['\t'] * (offset-1))
                     ret_str += "\n\n" + offset_str + '<control relevant="true">'
@@ -1178,7 +1198,9 @@ def write_results(X_test_data, y_test_trans, y_pred_trans, level_h_trans, level_
                 #print("FROM | ", transition_str, tags)
 
             #if current_tag[2:].lower() in ['trigger', 'transition'] and overlap(word, def_states):
-            if current_tag[2:].lower() in ['trigger', 'transition'] and word in def_states and (not explicit_type):
+            # if current_tag[2:].lower() in ['trigger', 'transition'] and word in def_states and (not explicit_type):
+            if word in def_states and (not explicit_type):
+
                 tagged_word = ""
 
                 # If source/target explicit, open tag
@@ -1295,7 +1317,8 @@ def write_results(X_test_data, y_test_trans, y_pred_trans, level_h_trans, level_
                 ack_tags = ack_tags[1:]
 
             prev_tag = current_tag
-            # prev_h = h[i] #避免一开始就是'O'
+            if i == 0 and current_tag == 'O':
+                prev_h = h[i] #避免一开始就是'O'
             if current_tag != 'O':
                 prev_h = h[i]
                 prev_d = d[i]
