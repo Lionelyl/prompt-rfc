@@ -239,7 +239,7 @@ def findInnerState(t, id2state):
         return to_state
     return to_state
 
-def findOuterStates(t, ctl, id2state,standby_option,iftcp = False):
+def findOuterStates(t, ctl, id2state,standby_option):
     if ET.tostring(t) == ET.tostring(ctl):
         return []
     options, cur_option =  [], []
@@ -264,7 +264,7 @@ def findOuterStates(t, ctl, id2state,standby_option,iftcp = False):
             state = id2state[cid]
             cur_option.append(state)
         if child.tag != 'transition':
-            sub_options = findOuterStates(t, child, id2state,standby_option,iftcp)
+            sub_options = findOuterStates(t, child, id2state,standby_option)
             if sub_options != None and len(sub_options) > 0:
                 options.append(sub_options)
             #cur_option = []
@@ -273,7 +273,7 @@ def findOuterStates(t, ctl, id2state,standby_option,iftcp = False):
             cur_option = []
     if len(cur_option) > 0:
         options.append(cur_option)
-    if len(options) == 0 and not iftcp : options.append(standby_option)
+    #if len(options) == 0 and not iftcp : options.append(standby_option)
     options = [o for o in options if o != None]
     if len(options) == 0:
         return []
@@ -312,14 +312,14 @@ def splitArguments(argument):
     ret.append(current)
     return ret
 
-def parseTransition(protocol,t, xml, id2reason, id2state, trygoup=True, numup=6):
+def parseTransition(t, xml, id2reason, id2state, trygoup=True, numup=6):
     # find explicit states - in some cases, both are explicit
     to_state = findExplicitToState(t, id2state)
     from_state = findExplicitFromState(t, id2state)
     intermediate_states = findExplicitIntermediateStates(t, id2state)
     intermediate_states = [s.upper() for s in intermediate_states]
-    iftcp = False
-    if protocol == 'tcp': iftcp = True
+    #iftcp = False
+    #if protocol == 'tcp': iftcp = True
     outer_states = []
     standby_option = []
     # find upper bound
@@ -334,14 +334,14 @@ def parseTransition(protocol,t, xml, id2reason, id2state, trygoup=True, numup=6)
         # find to_state
         to_state = findInnerState(t, id2state)
         # find from_states
-        outer_states = findOuterStates(t, control, id2state,standby_option,iftcp)
+        outer_states+=findOuterStates(t, control, id2state , standby_option)
     # This case is similar to the above but we have an explicit -target- or 
     # -source- annotation inside <transition>
     # In DCCP, there are a few annotations where the single reference inside is 
     # a source
     elif to_state is None or from_state is None:
         # find outside states
-        outer_states = findOuterStates(t, control, id2state,standby_option,iftcp)
+        outer_states+=findOuterStates(t, control, id2state , standby_option)
     #print("to_state", to_state, "from_state", from_state)
 
     # Try going up just one layer.
@@ -365,20 +365,21 @@ def parseTransition(protocol,t, xml, id2reason, id2state, trygoup=True, numup=6)
             if len(outer_states) == 0 and (to_state   is None or \
                                            from_state is None):
                 
-                outer_states = findOuterStates(control,        \
+                outer_states += findOuterStates(control,        \
                                                parent_control, \
-                                               id2state,standby_option,iftcp)
+                                               id2state,standby_option)
 
         else:
-            if standby_option != []:
-                print("standby!!!!!",standby_option)
-                outer_states += standby_option
+            # if standby_option != []:
+            #     print("standby!!!!!",standby_option)
+            #     outer_states += standby_option
             break
 
         i += 1
         control = parent_control
 
     # upper case
+    outer_states += standby_option
     outer_states = [s.upper() for s in outer_states]
 
     if to_state is None and from_state is not None and len(outer_states) > 0:
@@ -388,18 +389,23 @@ def parseTransition(protocol,t, xml, id2reason, id2state, trygoup=True, numup=6)
             (it doesn't happen in DCCP annotations)
             pass
         '''
-        to_state = outer_states[0].upper()
+        #to_state = outer_states[0].upper()
+
+        to_state = outer_states
         from_states = [from_state.upper()]
     elif to_state is not None and from_state is None:
-        to_state = to_state.upper()
+        to_state = [to_state.upper()]
         from_states = outer_states
     elif to_state is not None and from_state is not None:
-        to_state = to_state.upper()
+        to_state = [to_state.upper()]
         from_states = [from_state.upper()]
     elif to_state is None and from_state is None:
+        to_state = []
         from_states = outer_states
     else:
+        to_state = []
         from_states = []
+
 
     # Check for unexplained context
     unexplained_context = findPrependEventsByContext(control, xml, id2reason)
@@ -434,21 +440,21 @@ def parseTransition(protocol,t, xml, id2reason, id2state, trygoup=True, numup=6)
 
         if len(argument_splits) == (len(intermediate_states) + 1):
             # The guessed split of arguments matches the number of hops
-            ret = [(from_states, argument_splits[0], inter_state)]
+            ret = [(from_states, argument_splits[0], [inter_state])]
             
             for inter_state, arg in zip(intermediate_states[1:], \
                                         argument_splits[1:]):
                 
-                ret.append(([prev_inter_state], arg, inter_state))
+                ret.append(([prev_inter_state], arg, [inter_state]))
                 prev_inter_state = inter_state
             
             ret.append(([inter_state], argument_splits[-1], to_state))
         
         else:
             # Otherwise, resort to vanilla solution
-            ret = [(from_states, argument, inter_state)]
+            ret = [(from_states, argument, [inter_state])]
             for inter_state in intermediate_states[1:]:
-                ret.append(([prev_inter_state], argument, inter_state))
+                ret.append(([prev_inter_state], argument, [inter_state]))
                 prev_inter_state = inter_state
             ret.append(([inter_state], argument, to_state))
 

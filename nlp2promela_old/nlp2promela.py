@@ -54,7 +54,7 @@ def main(writepromela=True, writepng=True):
     id2state  = { a.get("id") : a.text for a in xml.iter('def_state') }
     id2reason = { a.get("id") : promela_convenience(a.text) for a in xml.iter('def_event') }
 
-    parsed = lambda t : parseTransition(protocol,t, xml, id2reason, id2state)
+    parsed = lambda t : parseTransition(t, xml, id2reason, id2state)
 
     oktran = lambda A, b, c : len(A) > 0 and not None in [ b, c ]
 
@@ -66,15 +66,16 @@ def main(writepromela=True, writepng=True):
         # Allow the case where a single tag retrieves more than one transition
         # (e.g. go from S through I to T)
         parsed_transitions = parsed(t)
-        for (A, B, c) in parsed_transitions:
-            if oktran(A, B, c):
+        for (A, B, C) in parsed_transitions:
+            if oktran(A, B, C):
                 for a in A:
                     source = a.replace("-", "_")
-                    dest   = c.replace("-", "_")
-                    if not (a == c and (B == 'ε' or B == ['ε'])):
-                        transition = (source, B, dest)
-                        transtuple = (transition, l)
-                        transitions.append(transtuple)
+                    for c in C:
+                        dest   = c.replace("-", "_")
+                        if not (a == c and (B == 'ε' or B == ['ε'])):
+                            transition = (source, B, dest)
+                            transtuple = (transition, l)
+                            transitions.append(transtuple)
 
     # Heuristic: If we have S0 -- x? y! --> S1, 
     #                       S0 -- x?    --> S1, and 
@@ -82,21 +83,21 @@ def main(writepromela=True, writepng=True):
     # Then we can delete the latter 2 which are clearly noise caused by mis-parsing
     # of mentions of the first (presumably elsewhere in the text.)
 
-    call_and_response_component_artifacts = [
-        ((source, B, dest), l) for ((source, B, dest), l) in transitions
-        if ((len(B) == 1) and
-            any(
-            [1 for ((s, BB, d), _) in transitions if 
-                (set(B).issubset(set(BB)) and
-                any([b for b in BB if b[-1] == "!"]) and
-                any([b for b in BB if b[-1] == "?"]) and
-                s == source                          and
-                d == dest)
-            ]
-        ))
-    ]
+    # call_and_response_component_artifacts = [
+    #     ((source, B, dest), l) for ((source, B, dest), l) in transitions
+    #     if ((len(B) == 1) and
+    #         any(
+    #         [1 for ((s, BB, d), _) in transitions if
+    #             (set(B).issubset(set(BB)) and
+    #             any([b for b in BB if b[-1] == "!"]) and
+    #             any([b for b in BB if b[-1] == "?"]) and
+    #             s == source                          and
+    #             d == dest)
+    #         ]
+    #     ))
+    # ]
 
-    # Heuristic: If we have x --(u)--> z and x --(ε)--> z, 
+    # Heuristic: If we have x --(u)--> z and x --(ε)--> z,
     #            then delete x --(ε)--> z because it's likely
     #            noise caused by the correct transition x --(u)--> z.
     redundant_epsilon_artifacts = [
@@ -115,9 +116,9 @@ def main(writepromela=True, writepng=True):
                        TCP_rst_transitions() if "TCP" in name else []
 
     
-    for c in call_and_response_component_artifacts:
-        printHeuristicRemoval(c, "call-and-response", test_transitions)
-        transitions.remove(c)
+    # for c in call_and_response_component_artifacts:
+    #     printHeuristicRemoval(c, "call-and-response", test_transitions)
+    #     transitions.remove(c)
 
     for c in redundant_epsilon_artifacts:
         printHeuristicRemoval(c, "redundant-epsilon", test_transitions)
