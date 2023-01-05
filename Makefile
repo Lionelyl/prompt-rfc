@@ -89,7 +89,7 @@ tftrainonly3hypersamewithrfcnlp:
 			--patience 5 \
 			--cuda_device $(C) \
 			--do_train \
-			--domain_label_map_path data/label_map_domain.json
+			--domain_label_map_path data/label_map_domain_new.json
 
 # write results
 tfwrite:
@@ -140,7 +140,8 @@ tfwritesamerfc:
 			--patience 5 \
 			--cuda_device $(C) \
 			--write_results \
-			--domain_label_map_path data/label_map_domain.json
+			--domain_label_map_path data/label_map_domain_new.json
+#			--domain_label_map_path data/label_map_domain.json
 
 #  same hyper parameter with rfcnlp | write results with Post heuristics
 tfwriteRsamerfc:
@@ -157,7 +158,8 @@ tfwriteRsamerfc:
 			--patience 5 \
 			--cuda_device $(C) \
 			--write_results  \
-			--domain_label_map_path data/label_map_domain.json
+			--domain_label_map_path data/label_map_domain_new.json
+#			--domain_label_map_path data/label_map_domain.json
 
 
 
@@ -374,6 +376,41 @@ sctpentlm:
 			-#-label_map_path data/label_map_handmaded_multitoken_top6.json
 
 # ----- template-based -----
+tbtrain:
+	python3 nlp-parser/template-based_rfc_only3.py								\
+			--features                                                      \
+			--savedir .                                                     \
+			--do_train                                                      \
+			--do_eval                                                       \
+			--heuristics                                                    \
+			--protocol $(P)                                                  \
+			--outdir output 												\
+			--bert_model networking_bert_rfcs_only                          \
+			--learning_rate 2e-5                                            \
+			--patience 10 \
+			--batch_size 1 	\
+			--cuda_device $(C) \
+		  	--template_id $(T)
+#		  	--warmup
+
+tbmultitrain:
+	python3 nlp-parser/template-based_rfc_only3.py								\
+			--features                                                      \
+			--savedir .                                                     \
+			--do_train                                                      \
+			--do_eval                                                       \
+			--heuristics                                                    \
+			--protocol $(P)                                                  \
+			--outdir output 												\
+			--bert_model networking_bert_rfcs_only                          \
+			--learning_rate 2e-5                                            \
+			--patience 10 \
+			--batch_size 1 	\
+			--cuda_device $(C) \
+		  	--multi_template \
+			--multi_template_num $(M)
+#		  	--warmup
+
 tcptbtrain:
 	python3 nlp-parser/template-based_rfc.py								\
 			--features                                                      \

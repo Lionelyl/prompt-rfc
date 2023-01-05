@@ -15,8 +15,8 @@ import data_utils_NEW_only3 as data_utils
 import features
 from eval_utils_only3 import evaluate, apply_heuristics
 
-START_TAG = 7
-STOP_TAG = 8
+START_TAG = 4
+STOP_TAG = 5
 
 def argmax(vec):
     # return the argmax as a python int

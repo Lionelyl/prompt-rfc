@@ -368,6 +368,116 @@ def get_data(files, word2id={}, tag2id={}, pos2id={}, id2cap={}, stem2id={}, id2
     #exit()
     return X_train, np.array(y_train), level_h_train, level_d_train
 
+def get_data_tb_only3(files, word2id={}, tag2id={}, pos2id={}, id2cap={}, stem2id={}, id2word={}, transition_counts={}, partition_sentence=False):
+    START_TAG = 4
+    STOP_TAG = 5
+    ps = PorterStemmer() # 词干提取器
+    next_id = len(word2id)
+    if next_id == 0:
+        word2id["[PAD]"] = 0
+        next_id = 1
+    next_tag_id = len(tag2id)
+    next_stem_id = len(stem2id)
+    pos_id = len(pos2id)
+    X_train = []; y_train = []; level_h_train = []; level_d_train = []
+    x_chunk = [[],[],[]]; x_control = []; y_control = []; level_h = []; level_d = []
+
+    for f in files:
+        #print(f)
+        with open(f) as fp:
+            prev_token = None; prev_prev_token = None
+            prev_tag = START_TAG
+            for line in fp:
+                elems = line.split(' =======')
+                #print(line)
+                #print(elems)
+                if elems[0] == "END-OF-CHUNK":
+                    if elems[1].strip().startswith('B-REF') or elems[1].strip().startswith('I-REF'):
+                        curr_tag = 'O'
+                    else:
+                        curr_tag = elems[1].strip()
+                        # for only3
+                        if curr_tag not in ['B-TRIGGER', 'B-ACTION', 'B-TRANSITION', 'O']:
+                            curr_tag = 'O'
+
+                    if curr_tag not in tag2id:
+                        tag2id[curr_tag] = next_tag_id
+                        next_tag_id += 1
+
+
+                    y_control.append(tag2id[curr_tag])
+                    level_h.append(int(elems[2].strip()))
+                    level_d.append(int(elems[3].strip()))
+                    x_control.append(x_chunk)
+                    x_chunk = [[],[],[]]
+
+                    if prev_tag not in transition_counts:
+                        transition_counts[prev_tag] = {}
+                    if tag2id[curr_tag] not in transition_counts[prev_tag]:
+                        transition_counts[prev_tag][tag2id[curr_tag]] = 0
+                    transition_counts[prev_tag][tag2id[curr_tag]] += 1
+
+                    prev_tag = tag2id[curr_tag]
+
+                    if partition_sentence and prev_token == "." and prev_prev_token not in ["e.g", "i.e", "etc"]:
+                        # Split the control statement
+                        prev_prev_token = None
+                        prev_token = None
+                        if len(y_control) > 0:
+                            y_train.append(np.array(y_control))
+                            X_train.append(x_control)
+                            level_h_train.append(level_h)
+                            level_d_train.append(level_d)
+                            curr_contr = [x[0] for x in x_control]
+                            curr_contr_str = ""
+                            for chunk in curr_contr:
+                                curr_contr_str += " ".join([id2word[w] for w in chunk]) + " | "
+                            #print(curr_contr_str)
+                            #print(y_control)
+                            #print("------")
+                        y_control = []; x_control = []
+                        level_h = []; level_d = []
+                elif elems[0] == "END-OF-CONTROL":
+                    prev_token = None
+                    prev_prev_token = None
+                    if len(y_control) > 0:
+                        y_train.append(np.array(y_control))
+                        X_train.append(x_control)
+                        level_h_train.append(level_h)
+                        level_d_train.append(level_d)
+
+                        curr_contr = [x[0] for x in x_control]
+                        curr_contr_str = ""
+                        for chunk in curr_contr:
+                            curr_contr_str += " ".join([id2word[w] for w in chunk]) + " | "
+
+                        #print(curr_contr_str)
+                        #print(y_control)
+                        #print("------")
+
+                    y_control = []; x_control = []
+                    level_h = []; level_d = []
+
+                    if prev_tag not in transition_counts:
+                        transition_counts[prev_tag] = {}
+                    if STOP_TAG not in transition_counts[prev_tag]:
+                        transition_counts[prev_tag][STOP_TAG] = 0
+                    transition_counts[prev_tag][STOP_TAG] += 1
+                    prev_tag = START_TAG
+
+                else:
+                    stem = ps.stem(elems[0].lower())
+                    next_id, pos_id, next_stem_id = \
+                        get_token(elems, stem, word2id, next_id, pos2id, pos_id, id2cap, stem2id, next_stem_id, id2word)
+                    prev_prev_token = prev_token
+                    prev_token = elems[0]
+
+                    x_chunk[0].append(word2id[elems[0]])
+                    x_chunk[1].append(pos2id[elems[2]])
+                    x_chunk[2].append(stem2id[stem])
+    #exit()
+    return X_train, np.array(y_train), level_h_train, level_d_train
+
 def max_lengths(X, y):
     # First calculate the max
     max_chunks = 0; max_tokens = 0
